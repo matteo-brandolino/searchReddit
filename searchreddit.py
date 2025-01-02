@@ -16,18 +16,37 @@ async def setup_reddit_client(client_id, client_secret, user_agent):
 
 
 async def get_comments(submission, limit=10):
-    """Extracts comments from a post asynchronously."""
-    comments = []
-    await submission.comments.replace_more(limit=0)  # Load hidden comments
+    """Extracts comments from a post asynchronously with error handling."""
+    try:
+        comments = []
+        if not submission.comments:
+            return []
 
-    all_comments = await submission.comments.list()
-    for comment in all_comments[:limit]:
-        comments.append({
-            'comment_text': comment.body,
-            'score': comment.score,
-            'date': datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S')
-        })
-    return [comment['comment_text'] for comment in comments if comment['score'] > 0]
+        try:
+            await submission.comments.replace_more(limit=0)
+            all_comments = await submission.comments.list()
+        except Exception as e:
+            log.error(f"Error loading comments: {e}")
+            return []
+
+        for comment in all_comments[:limit]:
+            try:
+                if hasattr(comment, 'body') and hasattr(comment, 'score'):
+                    comments.append({
+                        'comment_text': comment.body,
+                        'score': comment.score,
+                        'date': datetime.fromtimestamp(comment.created_utc).strftime('%Y-%m-%d %H:%M:%S')
+                    })
+            except AttributeError:
+                continue
+            except Exception as e:
+                log.error(f"Error processing comment: {e}")
+                continue
+
+        return [comment['comment_text'] for comment in comments if comment.get('score', 0) > 0]
+    except Exception as e:
+        log.error(f"General error in get_comments function: {e}")
+        return []
 
 
 async def search_on_reddit(reddit, query, subreddit=None, limit=10, comments_limit=5):
@@ -57,12 +76,7 @@ async def search_on_reddit(reddit, query, subreddit=None, limit=10, comments_lim
     return posts_results
 
 
-@tool(return_direct=True)
-async def search_reddit(query, cat):
-    """
-    When user asks you to "search on reddit" always use this tool.
-    Input is the query.
-    """
+async def main(query, cat):
     # Load settings
     settings = cat.mad_hatter.get_plugin().load_settings()
     client_id = settings["client_id"]
@@ -94,7 +108,7 @@ async def search_reddit(query, cat):
             "The response should be logically consistent, accurate, and appropriately address the context derived from the array's contents\n"
         )
 
-        response = await cat.llm(prompt)
+        response = cat.llm(prompt)
         log.info(f"Search Reddit response {posts}")
         return response
 
@@ -102,8 +116,11 @@ async def search_reddit(query, cat):
         # Ensure the client is properly closed
         await reddit.close()
 
-# Helper function to run the async tool in sync context if needed
 
-
-def sync_search_reddit(query, cat):
-    return asyncio.run(search_reddit(query, cat))
+@tool(return_direct=True)
+async def search_reddit(query, cat):
+    """
+    When user asks you to "search on reddit" always use this tool.
+    Input is the query.
+    """
+    return await main(query, cat)

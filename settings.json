@@ -3,6 +3,6 @@
     "language": "en",
     "client_id": "_12P7oY0BIOSkoZo2ZbE7Q",
     "client_secret": "rzCLT1l8fO6dnpHF6TjODl4XaLFsHw",
-    "posts_limit": 50,
-    "comments_limit": 10
+    "posts_limit": 10,
+    "comments_limit": 5
 }
