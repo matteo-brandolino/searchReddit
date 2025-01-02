@@ -1,0 +1,10 @@
+{
+    "name": "SearchReddit",
+    "version": "0.1.0",
+    "description": "RAG using Reddit API",
+    "author_name": "Matteo Brandolino",
+    "author_url": "https://github.com/matteo-brandolino",
+    "plugin_url": "https://github.com/matteo-brandolino/RedditSearch",
+    "tags": "reddit, search",
+    "thumb": "https://github.com/matteo-brandolino/RedditSearch/main/logo.png"
+}
